@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import random
 import platform
 import subprocess
 from redlock import Redlock
 
 
-def select_gpu(redis_conf=None, timeout=10000, random_gpu=True):
+def select_gpu(redis_conf=None, timeout=10000, random=True):
     """Sets the CUDA_VISIBLE_DEVICES environment variable
 
     :param redis_conf: Redis configuration passed to redlock-py
@@ -16,7 +17,7 @@ def select_gpu(redis_conf=None, timeout=10000, random_gpu=True):
     """
     if len(os.environ.get('CUDA_VISIBLE_DEVICES', 'unset')) == 0:
         # Environment variable empty
-        return "cpu"
+        return ""
 
     gpu_status = str(subprocess.check_output(['nvidia-smi', 'pmon', '-c', '1']))
     # Example of expected result from nvidia-smi:
@@ -36,7 +37,7 @@ def select_gpu(redis_conf=None, timeout=10000, random_gpu=True):
             return int(gpu)
 
     gpu_status = filter(lambda x: x[7] == '-', gpu_status)
-    if random_gpu:
+    if random:
         # Suffle GPUs list
         random.shuffle(gpu_status)
 
@@ -58,10 +59,14 @@ def select_gpu(redis_conf=None, timeout=10000, random_gpu=True):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--random-gpu', action='store_true')
+    parser.add_argument('--random', action='store_true')
     parser.add_argument('--timeout', type=int, default=10000, help='Lock timeout (in milliseconds)')
     args = parser.parse_args()
-    print(select_gpu(**vars(args)))
+    try:
+        print(select_gpu(**vars(args)))
+    except:
+        print("Failed to lock GPU")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

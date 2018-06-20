@@ -4,7 +4,7 @@
 The library performs the following steps:
 
 1. Probes the system with `nvidia-smi` to know the current usage of GPUs;
-2. Iterate through the unused GPUs and lock one using a distributed lock.
+2. Iterates through the unused GPUs and locks one using a distributed lock.
 
 The distributed lock mechanism is based on [redis](http://redis.io/topics/distlock) using the [redlock-py](https://github.com/SPSCommerce/redlock-py) library.
 
@@ -19,6 +19,8 @@ $ pip install --upgrade https://github.com/fabgeyer/gpudlock/archive/master.tar.
 
 ## Library usage
 
+Directly in python:
+
 ```python
 from gpudlock import select_gpu
 
@@ -29,4 +31,12 @@ def main():
 	except:
 		print("Failed to allocate GPU")
 	...
+```
+
+In a bash script:
+
+```bash
+#!/bin/sh
+
+export CUDA_VISIBLE_DEVICES=`gpudlock --random`
 ```
