@@ -8,6 +8,12 @@ import subprocess
 from redlock import Redlock
 
 
+def hide_gpu():
+    """Sets the CUDA_VISIBLE_DEVICES environment variable to empty
+    """
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+
+
 def select_gpu(redis_conf=None, timeout=10000, random=True):
     """Sets the CUDA_VISIBLE_DEVICES environment variable
 
