@@ -8,7 +8,7 @@ with open('README.md', 'r', 'utf-8') as fd:
 
 setup(
     name='gpudlock',
-    version='0.20180619',
+    version='0.20181002',
     description='Distributed locking of GPUs',
     long_description=long_description,
     url='https://github.com/fabgeyer/gpudlock',

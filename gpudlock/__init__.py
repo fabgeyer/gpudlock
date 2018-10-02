@@ -23,7 +23,7 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
     """
     if len(os.environ.get('CUDA_VISIBLE_DEVICES', 'unset')) == 0:
         # Environment variable empty
-        return ""
+        return "", None
 
     gpu_status = str(subprocess.check_output(['nvidia-smi', 'pmon', '-c', '1']))
     # Example of expected result from nvidia-smi:
@@ -40,7 +40,7 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
         if p == '-':
             continue
         if pid == int(p):
-            return int(gpu)
+            return int(gpu), None
 
     gpu_status = filter(lambda x: x[7] == '-', gpu_status)
     if shuffle:
@@ -57,7 +57,9 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
             gpu_lock = dlm.lock("{}:gpu{}".format(platform.node(), gpu), timeout)
             if gpu_lock != False:
                 os.environ['CUDA_VISIBLE_DEVICES'] = gpu
-                return int(gpu)
+                def unlock():
+                    return dlm.unlock(gpu_lock)
+                return int(gpu), unlock
 
     raise Exception("No GPU available!")
 
@@ -69,7 +71,8 @@ def main():
     parser.add_argument('--timeout', type=int, default=10000, help='Lock timeout (in milliseconds)')
     args = parser.parse_args()
     try:
-        print(select_gpu(**vars(args)))
+        gpuid, unlock =select_gpu(**vars(args))
+        print(gpuid)
     except:
         print("Failed to lock GPU")
         sys.exit(1)
