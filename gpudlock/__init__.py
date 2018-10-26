@@ -31,18 +31,18 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
     #   # Idx          #   C/G     %     %     %     %   name
     #       0      25729     C    94    57     0     0   python
     #       1          -     -     -     -     -     -   -
-    gpu_status = map(lambda x: x.split(), gpu_status.split("\n")[2:-1])
+    gpu_status = list(map(lambda x: x.split(), gpu_status.split("\\n")[2:-1]))
 
     # Check if the GPU is not already used by the current process
     pid = os.getpid()
-    gpu_pids = map(lambda x: x[:2], gpu_status)
+    gpu_pids = list(map(lambda x: x[:2], gpu_status))
     for gpu, p in gpu_pids:
         if p == '-':
             continue
         if pid == int(p):
             return int(gpu), None
 
-    gpu_status = filter(lambda x: x[7] == '-', gpu_status)
+    gpu_status = list(filter(lambda x: x[7] == '-', gpu_status))
     if shuffle:
         # Suffle GPUs list
         random.shuffle(gpu_status)
@@ -67,7 +67,7 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--random', action='store_true')
+    parser.add_argument('--shuffle', action='store_true')
     parser.add_argument('--timeout', type=int, default=10000, help='Lock timeout (in milliseconds)')
     args = parser.parse_args()
     try:
