@@ -31,7 +31,7 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
     #   # Idx          #   C/G     %     %     %     %   name
     #       0      25729     C    94    57     0     0   python
     #       1          -     -     -     -     -     -   -
-    gpu_status = list(map(lambda x: x.split(), gpu_status.splitlines()[2:-1]))
+    gpu_status = list(map(lambda x: x.split(), gpu_status.splitlines()[2:]))
 
     # Check if the GPU is not already used by the current process
     pid = os.getpid()
