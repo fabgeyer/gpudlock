@@ -8,6 +8,10 @@ import subprocess
 from redlock import Redlock
 
 
+class GPUAvailabilityException(Exception):
+    pass
+
+
 def hide_gpu():
     """Sets the CUDA_VISIBLE_DEVICES environment variable to empty
     """
@@ -25,7 +29,7 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
         # Environment variable empty
         return "", None
 
-    gpu_status = str(subprocess.check_output(['nvidia-smi', 'pmon', '-c', '1']))
+    gpu_status = subprocess.check_output(['nvidia-smi', 'pmon', '-c', '1'])
     # Example of expected result from nvidia-smi:
     #   # gpu        pid  type    sm   mem   enc   dec   command
     #   # Idx          #   C/G     %     %     %     %   name
@@ -37,12 +41,10 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
     pid = os.getpid()
     gpu_pids = list(map(lambda x: x[:2], gpu_status))
     for gpu, p in gpu_pids:
-        if p == '-':
-            continue
-        if pid == int(p):
+        if p.isdigit() and pid == int(p):
             return int(gpu), None
 
-    gpu_status = list(filter(lambda x: x[7] == '-', gpu_status))
+    gpu_status = list(filter(lambda x: not x[1].isdigit(), gpu_status))
     if shuffle:
         # Suffle GPUs list
         random.shuffle(gpu_status)
@@ -53,15 +55,17 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
 
     if len(gpu_status) > 0:
         for gpu_ in gpu_status:
-            gpu = gpu_[0]
+            gpu = int(gpu_[0])
             gpu_lock = dlm.lock("{}:gpu{}".format(platform.node(), gpu), timeout)
             if gpu_lock != False:
-                os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+                os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu)
+
                 def unlock():
                     return dlm.unlock(gpu_lock)
+
                 return int(gpu), unlock
 
-    raise Exception("No GPU available!")
+    raise GPUAvailabilityException("No GPU available!")
 
 
 def main():
@@ -71,9 +75,9 @@ def main():
     parser.add_argument('--timeout', type=int, default=10000, help='Lock timeout (in milliseconds)')
     args = parser.parse_args()
     try:
-        gpuid, unlock =select_gpu(**vars(args))
+        gpuid, unlock = select_gpu(**vars(args))
         print(gpuid)
-    except:
+    except GPUAvailabilityException:
         print("Failed to lock GPU")
         sys.exit(1)
 
