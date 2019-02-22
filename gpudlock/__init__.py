@@ -18,7 +18,7 @@ def hide_gpu():
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 
-def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
+def select_gpu(redis_conf=None, timeout=10000, shuffle=True, set_environ=True):
     """Sets the CUDA_VISIBLE_DEVICES environment variable
 
     :param redis_conf: Redis configuration passed to redlock-py
@@ -58,7 +58,8 @@ def select_gpu(redis_conf=None, timeout=10000, shuffle=True):
             gpu = int(gpu_[0])
             gpu_lock = dlm.lock("{}:gpu{}".format(platform.node(), gpu), timeout)
             if gpu_lock != False:
-                os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu)
+                if set_environ:
+                    os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu)
 
                 def unlock():
                     return dlm.unlock(gpu_lock)
